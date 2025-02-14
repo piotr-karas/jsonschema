@@ -1,0 +1,10 @@
+{
+    "$id": "https://example.com/factory-panel-schema",
+    "type": "object",
+    "properties": {
+        "OrderFlowFromPanel": {
+            "enum": [0, 1]
+        }
+    },
+    "required": ["OrderFlowFromPanel"]
+}

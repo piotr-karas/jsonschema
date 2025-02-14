@@ -1,0 +1,183 @@
+# Copyright (c) 2025 ANT Solutions https://antsolutions.eu/
+
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+source test_utils.tcl
+
+tcltest::test array-1 "Validate simple array" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {['key1', 'key2', 'key3']} \
+    {{
+        "type": "array"
+    }}
+} -result {valid true}
+
+tcltest::test array-2 "Throw for other type" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {"raz"} \
+    {{
+        "type": "array"
+    }}
+} -result {valid false errors {{message {Invalid data type} instancePath {} schemaPath type schemaValue array found string type ErrInvalidDataType}}}
+
+### ITEMS
+
+tcltest::test array-items-1 "Validate array items type" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {['key1', 'key2', 'key3']} \
+    {{
+        "type": "array",
+        "items": {
+            "type": "string"
+        }
+    }}
+} -result {valid true}
+
+tcltest::test array-items-2 "Throw for invalid array items type" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {['key1', 123, 'key3']} \
+    {{
+        "type": "array",
+        "items": {
+            "type": "string"
+        }
+    }}
+} -result {valid false errors {{message {Invalid data type} instancePath 1 instanceValue 123 schemaPath {items type} schemaValue string found number type ErrInvalidDataType}}}
+
+### PREFIX ITEMS
+
+tcltest::test array-prefix-items-1 "Validate array with prefixItems and additional item" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {['key1', 123, false, 'additionalItem']} \
+    {{
+        "type": "array",
+        "prefixItems": [{
+            "type": "string"
+        },{
+            "type": "number"
+        },{
+            "type": "boolean"
+        }]
+    }}
+} -result {valid true}
+
+tcltest::test array-prefix-items-2 "Throw when additional items are not allowed" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {['key1', 123]} \
+    {{
+        "type": "array",
+        "prefixItems": [{
+            "type": "string"
+        }],
+        "items": false
+    }}
+} -result {valid false errors {{message {Item not allowed} instancePath 1 schemaPath items type ErrItemNotAllowed}}}
+
+tcltest::test array-prefix-items-3 "Validate additional items for prefixItems" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {['key1', 123]} \
+    {{
+        "type": "array",
+        "prefixItems": [{
+            "type": "string"
+        }],
+        "items": {
+            "type": "number"
+        }
+    }}
+} -result {valid true}
+
+tcltest::test array-prefix-items-4 "Not all prefixItems must be provided" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {['key1']} \
+    {{
+        "type": "array",
+        "prefixItems": [{
+            "type": "string"
+        }, {
+            "type": "boolean"
+        }]
+    }}
+} -result {valid true}
+
+### CONTAINS
+
+tcltest::test array-contains-1 "Should contain at least one matching item" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {[123, 'key1', 55]} \
+    {{
+        "type": "array",
+        "contains": {
+            "type": "string"
+        }
+    }}
+} -result {valid true}
+
+tcltest::test array-contains-2 "Should contain correct number of matching items" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {[123, 'key1', 55, 'key2']} \
+    {{
+        "type": "array",
+        "contains": {
+            "type": "string"
+        },
+        "minContains": 1,
+        "maxContains": 3
+    }}
+} -result {valid true}
+
+tcltest::test array-contains-3 "Throw for wrong number of matching items" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {[123, 'key1', 55, 'key2']} \
+    {{
+        "type": "array",
+        "contains": {
+            "type": "string"
+        },
+        "minContains": 3,
+        "maxContains": 1
+    }}
+} -result {valid false errors {{message {Array contains more than allowed matching items} instancePath {} schemaPath maxContains schemaValue 1 type ErrMaxContains} {message {Array contains less than allowed matching items} instancePath {} schemaPath minContains schemaValue 3 type ErrMinContains}}}
+
+### LENGTH
+
+tcltest::test array-length-1 "Should validate with proper length" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {[123, 123, 123]} \
+    {{
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 5
+    }}
+} -result {valid true}
+
+tcltest::test array-length-2 "Throw for too long and too short array" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {[123, 123, 123]} \
+    {{
+        "type": "array",
+        "minItems": 5,
+        "maxItems": 1
+    }}
+} -result {valid false errors {{message {Array length is less than allowed} instancePath {} schemaPath minItems schemaValue 5 found 3 type ErrMinItems} {message {Array length is greater than allowed} instancePath {} schemaPath maxItems schemaValue 1 found 3 type ErrMaxItems}}}
+
+### UNIQUE
+
+tcltest::test array-unique-1 "Should validate unique array" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {[123, 'key1', 55]} \
+    {{
+        "type": "array",
+        "uniqueItems": true
+    }}
+} -result {valid true}
+
+tcltest::test array-unique-2 "Throw for non-unique array" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {[123, 'key1', 55, 'key1', 55]} \
+    {{
+        "type": "array",
+        "uniqueItems": true
+    }}
+} -result {valid false errors {{message {Array contains duplicate items} instancePath 1 instanceValue key1 schemaPath uniqueItems schemaValue true found 3 type ErrUniqueItems} {message {Array contains duplicate items} instancePath 2 instanceValue 55 schemaPath uniqueItems schemaValue true found 4 type ErrUniqueItems}}}

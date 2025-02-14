@@ -1,0 +1,40 @@
+{
+    "$id": "https://example.com/factory-schema",
+    "type": "object",
+    "patternProperties": {
+        "^(production|test|development)$": {
+            "type": "object",
+            "properties": {
+                "SomeURL": {
+                    "format": "uri"
+                },
+                "Translations": {
+                    "type": "object",
+                    "properties": {
+                        "DefaultLanguage": {
+                            "enum": ["en", "pl"]
+                        },
+                        "SupportedLanguages": {
+                            "type": "array",
+                            "items": {
+                                "enum": ["en", "pl"]
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": ["DefaultLanguage", "SupportedLanguages"]
+                }
+            },
+            "patternProperties": {
+                "^.*/FactoryPanel$": {
+                    "$ref": "/factory-panel-schema"
+                }
+            },
+            "required": ["SomeURL"]
+        }
+    },
+    "propertyNames": {
+        "pattern": "^(production|test|development)$"
+    },
+    "required": ["production"]
+}

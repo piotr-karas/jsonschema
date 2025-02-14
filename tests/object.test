@@ -1,0 +1,121 @@
+# Copyright (c) 2025 ANT Solutions https://antsolutions.eu/
+
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+source test_utils.tcl
+
+tcltest::test object-1 "Properly validate yaml object" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {
+        name: "Gandalf"
+        age: 777
+        isWizard: false} \
+    {{
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string"
+            },
+            "age": {
+                "type": "number"
+            },
+            "isWizard": {
+                "type": "boolean"
+            },
+            "someNonExistingProperty": {
+                "type": "boolean"
+            }
+        },
+        "required": ["name"],
+        "additionalProperties": false,
+        "minProperties": 3,
+        "maxProperties": 4
+    }}
+} -result {valid true}
+
+tcltest::test object-2 "Should not validate yaml object with non-existing required property and not allowed additional property" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {
+        name: "Gandalf"
+        isWizard: false} \
+    {{
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string"
+            },
+            "age": {
+                "type": "number"
+            }
+        },
+        "required": ["name", "age"],
+        "additionalProperties": false
+    }}
+} -result {valid false errors {{message {Missing required property} instancePath {} schemaPath {required 1} schemaValue age type ErrMissingProperty} {message {Item not allowed} instancePath isWizard schemaPath additionalProperties type ErrItemNotAllowed}}}
+
+tcltest::test object-3 "Should not validate yaml object with wrong additional property" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {
+        name: "Gandalf"
+        age: "bad type"} \
+    {{
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string"
+            }
+        },
+        "additionalProperties": {
+            "type": "number"
+        }
+    }}
+} -result {valid false errors {{message {Invalid data type} instancePath age instanceValue {bad type} schemaPath {additionalProperties type} schemaValue number found string type ErrInvalidDataType}}}
+
+tcltest::test object-4 "Property name does not match pattern" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {
+        name: "Gandalf"
+        type: "bad type"} \
+    {{
+        "type": "object",
+        "propertyNames": {
+            "pattern": "^name$"
+        }
+    }}
+} -result {valid false errors {{message {Property name does not match pattern} instancePath type schemaPath {propertyNames pattern} schemaValue {^name$} type ErrPattern}}}
+
+tcltest::test object-5 "Throw when minProperties and maxProperties does not match" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {
+        name: "Gandalf"
+        type: "bad type"} \
+    {{
+        "type": "object",
+        "minProperties": 5,
+        "maxProperties": 1
+    }}
+} -result {valid false errors {{message {Object contains too little properties} instancePath {} schemaPath minProperties schemaValue 5 type ErrMinProperties} {message {Object contains too many properties} instancePath {} schemaPath maxProperties schemaValue 1 type ErrMaxProperties}}}
+
+tcltest::test object-6 "Pattern properties" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {
+        name: "Gandalf"
+        number: 123,
+        numberNotMatching: "notMatching"} \
+    {{
+        "type": "object",
+        "patternProperties": {
+            "^name$": {
+                "type": "string"
+            },
+            "^number.*$": {
+                "type": "number"
+            }
+        }
+    }}
+} -result {valid false errors {{message {Invalid data type} instancePath numberNotMatching instanceValue notMatching schemaPath {patternProperties {^number.*$} type} schemaValue number found string type ErrInvalidDataType}}}
+
+# tcltest::test basic-1 "Read simple file" -body {
+#     ::jsonschema::validate -instanceFormat yaml {C:\Projekty\jsonschema\tests\example\simple.yaml} {C:\Projekty\jsonschema\tests\example\simple.schema.json} -dataFormat yamlFile -schemaFormat jsonFile
+# } -result {}

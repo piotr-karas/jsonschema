@@ -1,0 +1,72 @@
+# Copyright (c) 2025 ANT Solutions https://antsolutions.eu/
+
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+source test_utils.tcl
+
+tcltest::test number-1 "Validate simple number" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {123.123} \
+    {{
+        "type": "number"
+    }}
+} -result {valid true}
+
+tcltest::test number-2 "Validate simple integer" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {123} \
+    {{
+        "type": "integer"
+    }}
+} -result {valid true}
+
+tcltest::test number-3 "Throw error for number while expecting integer" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {123.22} \
+    {{
+        "type": "integer"
+    }}
+} -result {valid false errors {{message {Number is not an integer} instancePath {} instanceValue 123.22 schemaPath type schemaValue integer type ErrInvalidDataType}}}
+
+tcltest::test number-4 "Validate integer with 'multipleOf' while expecting number" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {20} \
+    {{
+        "type": "number",
+        "multipleOf": 10
+    }}
+} -result {valid true}
+
+tcltest::test number-5 "Throw for bad 'multipleOf'" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {20} \
+    {{
+        "type": "integer",
+        "multipleOf": 1234
+    }}
+} -result {valid false errors {{message {Number is not multiple} instancePath {} instanceValue 20 schemaPath multipleOf schemaValue 1234 type ErrMultipleOf}}}
+
+tcltest::test number-6 "Validate minimum and maximum, exclusiveMinimum and exclusiveMaximum" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {20} \
+    {{
+        "type": "number",
+        "minimum": 20,
+        "maximum": 20,
+        "exclusiveMinimum": 19,
+        "exclusiveMaximum": 21
+    }}
+} -result {valid true}
+
+tcltest::test number-7 "Throw for minimum, maximum, exclusiveMinimum and exclusiveMaximum" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {20} \
+    {{
+        "type": "number",
+        "minimum": 21,
+        "maximum": 19,
+        "exclusiveMinimum": 20,
+        "exclusiveMaximum": 20
+    }}
+} -result {valid false errors {{message {Number is less than required} instancePath {} instanceValue 20 schemaPath minimum schemaValue 21 type ErrMinimum} {message {Number is greater than required} instancePath {} instanceValue 20 schemaPath maximum schemaValue 19 type ErrMaximum} {message {Number is less or equal than required} instancePath {} instanceValue 20 schemaPath exclusiveMinimum schemaValue 20 type ErrExclusiveMinimum} {message {Number is greater or equal than required} instancePath {} instanceValue 20 schemaPath exclusiveMaximum schemaValue 20 type ErrExclusiveMaximum}}}

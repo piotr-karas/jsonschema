@@ -1,0 +1,108 @@
+# Copyright (c) 2025 ANT Solutions https://antsolutions.eu/
+
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+source test_utils.tcl
+
+tcltest::test api-1 "Ignore \$schema version" -body {
+    ::jsonschema::validate \
+    {"sth"} \
+    {{
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string"
+    }}
+} -result {valid true}
+
+tcltest::test api-2 "Validate instance in yaml format" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {
+        one: two} \
+    {{
+        "type": "object",
+        "properties": {
+            "one": {
+                "type": "string"
+            }
+        }
+    }}
+} -result {valid true}
+
+tcltest::test api-3 "Validate instance in json format" -body {
+    ::jsonschema::validate -instanceFormat json \
+    {{"one": "two"}} \
+    {{
+        "type": "object",
+        "properties": {
+            "one": {
+                "type": "string"
+            }
+        }
+    }}
+} -result {valid true}
+
+tcltest::test api-4 "Validate instance in yamlFile format and schema in jsonFile" -body {
+    ::jsonschema::validate -instanceFormat yamlFile -schemaFormat jsonFile \
+    {.\example\simple.yaml} \
+    {.\example\simple.schema.json}
+} -result {valid true}
+
+tcltest::test api-5 "Validate simple instance in jsonFile format and schema in jsonFile" -body {
+    ::jsonschema::validate -instanceFormat jsonFile -schemaFormat jsonFile \
+    {.\example\simple.json} \
+    {.\example\simple.schema.json}
+} -result {valid true}
+
+tcltest::test api-6 "Throw first error" -body {
+    ::jsonschema::validate -throwFirst true -instanceFormat json \
+    {{"one": 1, "two": 2}} \
+    {{
+        "type": "object",
+        "properties": {
+            "one": {
+                "type": "string"
+            },
+            "two": {
+                "type": "string"
+            }
+        }
+    }}
+} -result {message {Invalid data type} instancePath one instanceValue 1 schemaPath {properties one type} schemaValue string found number} -errorCode {JSONSCHEMA ErrInvalidDataType}
+
+tcltest::test api-7 "Throw all errors" -body {
+    ::jsonschema::validate -throwAll true -instanceFormat json \
+    {{"one": 1, "two": 2}} \
+    {{
+        "type": "object",
+        "properties": {
+            "one": {
+                "type": "string"
+            },
+            "two": {
+                "type": "string"
+            }
+        }
+    }}
+} -result {message {Validation failed} errors {{message {Invalid data type} instancePath one instanceValue 1 schemaPath {properties one type} schemaValue string found number type ErrInvalidDataType} {message {Invalid data type} instancePath two instanceValue 2 schemaPath {properties two type} schemaValue string found number type ErrInvalidDataType}}} -errorCode {JSONSCHEMA ErrValidation}
+
+tcltest::test api-8 "Return all errors in list" -body {
+    ::jsonschema::validate -instanceFormat json \
+    {{"one": 1, "two": 2}} \
+    {{
+        "type": "object",
+        "properties": {
+            "one": {
+                "type": "string"
+            },
+            "two": {
+                "type": "string"
+            }
+        }
+    }}
+} -result {valid false errors {{message {Invalid data type} instancePath one instanceValue 1 schemaPath {properties one type} schemaValue string found number type ErrInvalidDataType} {message {Invalid data type} instancePath two instanceValue 2 schemaPath {properties two type} schemaValue string found number type ErrInvalidDataType}}}
+
+tcltest::test api-9 "Validate example factory config instance in yamlFile format and schema in jsonFile including other schemas" -body {
+    ::jsonschema::validate -includeSchemas {{jsonFile {.\example\factory-panel.schema.json}}} -instanceFormat yamlFile -schemaFormat jsonFile \
+    {.\example\factory.yaml} \
+    {.\example\factory.schema.json}
+} -result {valid true}

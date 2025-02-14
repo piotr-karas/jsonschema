@@ -1,0 +1,60 @@
+# Copyright (c) 2025 ANT Solutions https://antsolutions.eu/
+
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+source test_utils.tcl
+
+tcltest::test string-1 "Validate simple string" -body {
+    ::jsonschema::validate \
+    {"sth"} \
+    {{
+        "type": "string"
+    }}
+} -result {valid true}
+
+tcltest::test string-2 "Should validate complex string" -body {
+    ::jsonschema::validate \
+    {"some_string"} \
+    {{
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 20,
+        "pattern": "^some_.*$"
+    }}
+} -result {valid true}
+
+tcltest::test string-3 "Should fail validation for number value" -body {
+    ::jsonschema::validate \
+    {1234} \
+    {{
+        "type": "string"
+    }}
+} -result {valid false errors {{message {Invalid data type} instancePath {} instanceValue 1234 schemaPath type schemaValue string found number type ErrInvalidDataType}}}
+
+tcltest::test string-4 "Should fail validation for too short string" -body {
+    ::jsonschema::validate \
+    {"sth"} \
+    {{
+        "type": "string",
+        "minLength": 4
+    }}
+} -result {valid false errors {{message {String length is less than required} instancePath {} instanceValue sth schemaPath minLength schemaValue 4 found 3 type ErrMinLength}}}
+
+tcltest::test string-5 "Should fail validation for too long string" -body {
+    ::jsonschema::validate \
+    {"sth"} \
+    {{
+        "type": "string",
+        "maxLength": 1  
+    }}
+} -result {valid false errors {{message {String length is greater than required} instancePath {} instanceValue sth schemaPath maxLength schemaValue 1 found 3 type ErrMaxLength}}}
+
+tcltest::test string-6 "Should fail validation for pattern" -body {
+    ::jsonschema::validate \
+    {"some_string"} \
+    {{
+        "type": "string",
+        "pattern": "not_matching_pattern"
+    }}
+} -result {valid false errors {{message {String does not match pattern} instancePath {} instanceValue some_string schemaPath pattern schemaValue not_matching_pattern type ErrPattern}}}

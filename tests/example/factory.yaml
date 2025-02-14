@@ -1,0 +1,15 @@
+production:
+  SomeURL: "http://www.google.com"
+  Translations:
+    DefaultLanguage: "en"
+    SupportedLanguages:
+      - "pl"
+      - "en"
+  Some/Path/FactoryPanel:
+    OrderFlowFromPanel: 1
+test:
+  SomeURL: "http://www.google.com"
+  Some/Other/Path/FactoryPanel:
+    OrderFlowFromPanel: 0
+development:
+  SomeURL: "http://www.google.com"

@@ -1,0 +1,79 @@
+# Copyright (c) 2025 ANT Solutions https://antsolutions.eu/
+
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+source test_utils.tcl
+
+tcltest::test format-1 "Validate simple email format" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {"gandalf@gmail.com"} \
+    {{
+        "format": "email"
+    }}
+} -result {valid true}
+
+tcltest::test format-2 "Throw for invalid email format" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {"gandalfgmail.com"} \
+    {{
+        "format": "email"
+    }}
+} -result {valid false errors {{message {Invalid format} instancePath {} instanceValue gandalfgmail.com schemaPath format schemaValue email type ErrInvalidFormat}}}
+
+tcltest::test format-3 "Throw for non-existing format" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {"123"} \
+    {{
+        "format": "some_non_existing_format"
+    }}
+} -result {Unknown format: some_non_existing_format} -errorCode {JSONSCHEMA ErrInvalidFormat}
+
+tcltest::test format-4 "Validate formats" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {
+        date: "1970-01-01"
+        time: "00:00:00"
+        date-time: "1970-01-01T00:00:00Z"
+        duration: "P3YT1H"
+        email: "gandalf.777@gmail.com"
+        ip-address: "192.168.1.0"
+        ipv6: "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
+        uri: "http://example.com/path?qs=v&qs2[1]=3#fragment"
+        uri-reference: "#fragment"
+        iri: "http://ƒøø.ßår/?∂éœ=πîx#πîüx"
+        uuid: "550e8400-e29b-41d4-a716-446655440000"
+        uri-template: "http://example.com/dictionary/{term:1}/{term}"
+        json-pointer: "/a/b/c"
+        relative-json-pointer: "5/a/b#"
+        hostname: "www.example.com"
+        phone: "+1 555 555 5555"
+        alpha: "abc"
+        alphanumeric: "abc123"
+        regex: "^.*$"
+        } \
+    {{
+        "type": "object",
+        "properties": {
+            "date": {"format": "date"},
+            "time": {"format": "time"},
+            "date-time": {"format": "date-time"},
+            "duration": {"format": "duration"},
+            "email": {"format": "email"},
+            "ip-address": {"format": "ip-address"},
+            "ipv6": {"format": "ipv6"},
+            "uri": {"format": "uri"},
+            "uri-reference": {"format": "uri-reference"},
+            "iri": {"format": "iri"},
+            "uuid": {"format": "uuid"},
+            "uri-template": {"format": "uri-template"},
+            "json-pointer": {"format": "json-pointer"},
+            "relative-json-pointer": {"format": "relative-json-pointer"},
+            "hostname": {"format": "hostname"},
+            "phone": {"format": "phone"},
+            "alpha": {"format": "alpha"},
+            "alphanumeric": {"format": "alphanumeric"},
+            "regex": {"format": "regex"}
+        }
+    }}
+} -result {valid true}
