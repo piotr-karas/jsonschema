@@ -20,3 +20,19 @@ tcltest::test enum-2 "Throw for enum not containing instance" -body {
         "enum": [123, "sth", "444"]
     }}
 } -result {valid false errors {{message {Value not in enum} instancePath {} instanceValue 444 schemaPath enum schemaValue {123 sth 444} type ErrEnum}}}
+
+tcltest::test enum-3 "Validate boolean enum for yaml" -body {
+    ::jsonschema::validate -instanceFormat yaml \
+    {false} \
+    {{
+        "enum": [123, false]
+    }}
+} -result {valid true}
+
+tcltest::test enum-4 "Validate boolean enum for json" -body {
+    ::jsonschema::validate -instanceFormat json \
+    {true} \
+    {{
+        "enum": [123, true]
+    }}
+} -result {valid true}

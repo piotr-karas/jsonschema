@@ -94,6 +94,17 @@ proc ::jsonschema::_getTypeFromHuddle {huddle} {
 }
 
 proc ::jsonschema::_getValueFromHuddle {huddle} {
+    set huddleTypeRaw [lindex $huddle 0]
+
+    # yaml2huddle returns {!!true 1} for true and {!!false 0} for false
+    # json2huddle returns {b true} for true and {b false} for false
+    # unify them to {boolean true} and {boolean false}
+    if {$huddleTypeRaw eq "!!true"} {
+        return "true"
+    }
+    if {$huddleTypeRaw eq "!!false"} {
+        return "false"
+    }
     return [lindex $huddle 1]
 }
 
